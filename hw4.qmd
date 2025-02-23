@@ -61,7 +61,68 @@ else:
     a.  Construct a `hour` variable with integer values from 0 to 23. Plot the
      histogram of the number of crashes by `hour`. Plot it by borough.
 
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
 
+# Load the cleaned dataset
+df = pd.read_feather("data/nyccrashes_cleaned.feather")
+
+# Create a 'hour' column to store the hours extracted from the crash_datetime column
+df['hour'] = pd.to_datetime(df['crash_datetime']).dt.hour
+
+# Plot histogram of number of crashes by hour (all boroughs combined)
+plt.figure(figsize=(10, 5))
+plt.hist(df['hour'], bins=24, edgecolor='black', alpha=0.7)
+plt.xlabel("Hour of the Day")
+plt.ylabel("Number of Crashes")
+plt.title("Histogram of NYC Crashes by Hour")
+plt.xticks(range(0, 24))  # Ensure all hours are labeled
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
+# Plot histogram of crashes by hour for each borough
+
+plt.figure(figsize=(12, 6))
+for borough in df['borough'].dropna().unique():
+    subset = df[df['borough'] == borough]
+    plt.hist(subset['hour'], bins=24, alpha=0.5, label=borough)
+
+plt.xlabel("Hour of the Day")
+plt.ylabel("Number of Crashes")
+plt.title("Histogram of NYC Crashes by Hour and Borough")
+plt.xticks(range(0, 24))
+plt.legend()
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
+
+# Get unique boroughs
+boroughs = df['borough'].dropna().unique()
+
+# Define subplot grid size
+n_rows = 2
+n_cols = 3
+fig, ax = plt.subplots(n_rows, n_cols, figsize=(20, 12))  # Adjusted for 6 boroughs max
+ax = ax.flatten()  # Flatten the axes array for easier iteration
+
+# Plot histogram of crashes by hour for each borough
+for idx, borough_name in enumerate(boroughs):
+    x = df[df['borough'] == borough_name]['hour']
+    ax[idx].hist(x, bins=24, alpha=0.7, edgecolor='black')
+    ax[idx].set_title(f'Histogram of NYC Crashes by Hour for {borough_name}')
+    ax[idx].set_xlabel("Hour of the Day")
+    ax[idx].set_ylabel("Number of Crashes")
+    ax[idx].set_xticks(range(0, 24))
+    ax[idx].grid(axis='y', linestyle='--', alpha=0.7)
+
+# Hide unused subplots if boroughs < 6
+for i in range(len(boroughs), len(ax)):
+    fig.delaxes(ax[i])
+
+plt.tight_layout()
+plt.show()
+
+```
      
     a.  Overlay the locations of the crashes on a map of NYC. The map could be a
      static map or a Google map.
