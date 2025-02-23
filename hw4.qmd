@@ -127,7 +127,92 @@ plt.show()
     a.  Overlay the locations of the crashes on a map of NYC. The map could be a
      static map or a Google map.
 
+```{python}
+# Load Required Libraries
+import os
+import io
+import zipfile
+import requests
+import pandas as pd
+import geopandas as gpd
+import matplotlib.pyplot as plt
 
+# Define the NYC MODZCTA shapefile URL and extraction directory
+shapefile_url = "https://data.cityofnewyork.us/api/geospatial/pri4-ifjk?method=export&format=Shapefile"
+extract_dir = "MODZCTA_Shapefile"
+
+# Create the directory if it doesn't exist
+os.makedirs(extract_dir, exist_ok=True)
+
+# Step 1: Download and extract the shapefile
+print("Downloading MODZCTA shapefile...")
+response = requests.get(shapefile_url)
+with zipfile.ZipFile(io.BytesIO(response.content), "r") as z:
+    z.extractall(extract_dir)
+
+print(f"Shapefile extracted to: {extract_dir}")
+```
+
+```{python}
+# Step 2: Automatically detect the correct .shp file
+shapefile_path = None
+for file in os.listdir(extract_dir):
+    if file.endswith(".shp"):
+        shapefile_path = os.path.join(extract_dir, file)
+        break  # Use the first .shp file found
+
+if not shapefile_path:
+    raise FileNotFoundError("No .shp file found in extracted directory.")
+
+print(f"Using shapefile: {shapefile_path}")
+
+# Step 3: Load the shapefile into GeoPandas
+gdf_nyc = gpd.read_file(shapefile_path)
+
+# Step 4: Convert to CRS with latitude/longitude (WGS 84) for correct mapping
+gdf_nyc = gdf_nyc.to_crs(epsg=4326)
+
+print(gdf_nyc.head())
+```
+
+```{python}
+# Remove missing values for latitude and longitude
+df_crashes = df.dropna(subset=['latitude', 'longitude'])
+
+# Convert to GeoDataFrame
+gdf_crashes = gpd.GeoDataFrame(df_crashes, 
+                               geometry=gpd.points_from_xy(df_crashes.longitude, df_crashes.latitude),
+                               crs="EPSG:4326")
+
+print(gdf_crashes[['zip_code', 'latitude', 'longitude']])
+```
+
+```{python}
+# Set up figure and axis
+fig, ax = plt.subplots(figsize=(10, 12))
+
+# Plot NYC boundary map
+gdf_nyc.plot(ax=ax, cmap='viridis', 
+linewidth=0.8, 
+edgecolor='black',
+legend=True, 
+label="NYC Boundaries")
+
+# Overlay crash locations as red dots
+gdf_crashes.plot(ax=ax, color='red', markersize=2, alpha=0.6, label="Crash Locations")
+
+# Add title and legend
+ax.set_title("NYC Crash Locations Overlay on NYC Map", fontsize=14)
+ax.legend()
+
+# Remove axes
+ax.set_xticks([])
+ax.set_yticks([])
+ax.set_frame_on(False)
+
+# Show plot
+plt.show()
+```
 
     a.  Create a new variable `severe` which is one if the number of persons
      injured or deaths is 1 or more; and zero otherwise. Construct a cross
