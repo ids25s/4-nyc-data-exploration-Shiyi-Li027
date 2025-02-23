@@ -220,7 +220,40 @@ plt.show()
      same across boroughs? Test the null hypothesis that the two variables
      are not associated with an appropriate test.
 
+```{python}
+import pandas as pd
+import numpy as np
+import rpy2.robjects.numpy2ri
+from rpy2.robjects.packages import importr
+rpy2.robjects.numpy2ri.activate()
 
+stats = importr('stats')
+
+# Create 'severe' column (1 if at least one injury or death, else 0)
+df['severe'] = np.where(
+  (df['number_of_persons_injured'] > 0) | 
+  (df['number_of_persons_killed'] > 0), 1, 0)
+
+# Construct a cross table for `severe` versus borough
+contingency_table_2 = pd.crosstab(df['severe'], df['borough'])
+
+print(contingency_table_2)
+
+# Perform Fisher's exact test for independence
+res_2 = stats.fisher_test(
+  contingency_table_2.to_numpy(), 
+  simulate_p_value = True)
+
+print(res_2)
+
+# Interpret results
+alpha = 0.05  # Significance level
+p_2 = res_2[0][0]
+if p_2 < alpha:
+    print("Reject the null hypothesis: Crash severity is NOT independent of borough.")
+else:
+    print("Fail to reject the null hypothesis: No strong evidence that crash severity depends on borough.")
+```
 
     a.  Merge the crash data with the Census zip code database which
    contains zip-code level demographic or socioeconomic variables.
