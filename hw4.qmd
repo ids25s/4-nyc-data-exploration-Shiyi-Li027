@@ -34,15 +34,23 @@ rpy2.robjects.numpy2ri.activate()
 
 stats = importr('stats')
 
-# Load the cleaned dataset exported from the 'Homework 4 - NYC Data Cleaning' assignment
+# Load the cleaned dataset exported from the 'Homework 4 - NYC Data Cleaning' 
+# assignment
 file_path = 'data/shiyili_cleaned_data.csv'
 df_shiyili = pd.read_csv(file_path)
+df_shiyili['borough'] = df_shiyili['borough'].apply(lambda x: str(x).upper())
 
-# Create a 'geo_missing' column to show where rows are missing latitude and longitude.
-df_shiyili['geo_missing'] = np.where(df_shiyili[['latitude', 'longitude']].isnull().all(axis=1)==True, 1, 0)
+# Create a 'geo_missing' column to show where rows are missing latitude and 
+# longitude.
+df_shiyili['geo_missing'] = np.where(df_shiyili[[
+  'latitude', 
+  'longitude']].isnull().all(axis=1)==True, 1, 0)
 
 # Construct contingency table for missing geocodes by borough
-contingency_table = pd.crosstab(df_shiyili['geo_missing'], df_shiyili['borough'])
+contingency_table = pd.crosstab(
+  df_shiyili['geo_missing'], 
+  df_shiyili['borough']).drop(columns=['NAN'], errors='ignore')
+
 print(contingency_table)
 
 # Perform Fisher's exact test for independence
@@ -68,7 +76,8 @@ import matplotlib.pyplot as plt
 # Load the cleaned dataset
 df = pd.read_feather("data/nyccrashes_cleaned.feather")
 
-# Create a 'hour' column to store the hours extracted from the crash_datetime column
+# Create a 'hour' column to store the hours extracted from the crash_datetime 
+# column
 df['hour'] = pd.to_datetime(df['crash_datetime']).dt.hour
 
 # Plot histogram of number of crashes by hour (all boroughs combined)
@@ -81,28 +90,13 @@ plt.xticks(range(0, 24))  # Ensure all hours are labeled
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.show()
 
-# Plot histogram of crashes by hour for each borough
-
-plt.figure(figsize=(12, 6))
-for borough in df['borough'].dropna().unique():
-    subset = df[df['borough'] == borough]
-    plt.hist(subset['hour'], bins=24, alpha=0.5, label=borough)
-
-plt.xlabel("Hour of the Day")
-plt.ylabel("Number of Crashes")
-plt.title("Histogram of NYC Crashes by Hour and Borough")
-plt.xticks(range(0, 24))
-plt.legend()
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.show()
-
 # Get unique boroughs
 boroughs = df['borough'].dropna().unique()
 
 # Define subplot grid size
 n_rows = 2
 n_cols = 3
-fig, ax = plt.subplots(n_rows, n_cols, figsize=(20, 12))  # Adjusted for 6 boroughs max
+fig, ax = plt.subplots(n_rows, n_cols, figsize=(20, 12)) 
 ax = ax.flatten()  # Flatten the axes array for easier iteration
 
 # Plot histogram of crashes by hour for each borough
@@ -180,9 +174,10 @@ print(gdf_nyc.head())
 df_crashes = df.dropna(subset=['latitude', 'longitude'])
 
 # Convert to GeoDataFrame
-gdf_crashes = gpd.GeoDataFrame(df_crashes, 
-                               geometry=gpd.points_from_xy(df_crashes.longitude, df_crashes.latitude),
-                               crs="EPSG:4326")
+gdf_crashes = gpd.GeoDataFrame(df_crashes, geometry=gpd.points_from_xy(
+                                df_crashes.longitude, 
+                                df_crashes.latitude
+                                ), crs="EPSG:4326")
 
 print(gdf_crashes[['zip_code', 'latitude', 'longitude']])
 ```
@@ -199,7 +194,9 @@ legend=True,
 label="NYC Boundaries")
 
 # Overlay crash locations as red dots
-gdf_crashes.plot(ax=ax, color='red', markersize=2, alpha=0.6, label="Crash Locations")
+gdf_crashes.plot(
+  ax=ax, color='red', markersize=2, alpha=0.6, label="Crash Locations"
+  )
 
 # Add title and legend
 ax.set_title("NYC Crash Locations Overlay on NYC Map", fontsize=14)
@@ -342,7 +339,10 @@ df_acs.dtypes
 df.dtypes
 
 # Convert ZIP codes to integers first, then to strings
-df['zip_code'] = pd.to_numeric(df['zip_code'], errors='coerce').fillna(0).astype(int).astype(str)
+df['zip_code'] = pd.to_numeric(
+  df['zip_code'], 
+  errors='coerce'
+  ).fillna(0).astype(int).astype(str)
 
 # Ensure all ZIP codes are 5-digit strings
 df['zip_code'] = df['zip_code'].str.zfill(5)
@@ -351,7 +351,9 @@ df['zip_code'] = df['zip_code'].str.zfill(5)
 df_acs['ZIP Code'] = df_acs['ZIP Code'].astype(str).str.zfill(5)
 
 # Merge crash data with Census data using ZIP Code as the key
-df_merged = df.merge(df_acs, left_on='zip_code', right_on='ZIP Code', how='left')
+df_merged = df.merge(
+  df_acs, left_on='zip_code', right_on='ZIP Code', how='left'
+  )
 
 # Check the merged dataframe
 print(df_merged.head(20))
@@ -365,7 +367,11 @@ missing_zips = set(df['zip_code'].unique()) - set(df_acs['ZIP Code'].unique())
 print("ZIP Codes in crashes but not in Census data:", missing_zips)
 
 # Check all Census ZIP codes exist in the crash data
-missing_census_zips = set(df_acs['ZIP Code'].unique()) - set(df['zip_code'].unique())
+missing_census_zips = set(
+  df_acs['ZIP Code'].unique()
+  ) - set(
+    df['zip_code'].unique()
+    )
 print("ZIP Codes in Census but not in crashes:", missing_census_zips)
 ```
 
@@ -373,3 +379,91 @@ print("ZIP Codes in Census but not in crashes:", missing_census_zips)
      that are available in the data or can be engineered from the data. For
      example, zip code level covariates obtained from merging with the
      zip code database; crash hour; number of vehicles involved.
+
+```{python}
+# Initial selection of columns to be used
+columns_to_use = [
+  "severe", "borough", "latitude", "longitude", "number_of_persons_injured",
+  "number_of_persons_killed", "number_of_pedestrians_injured", 
+  "number_of_pedestrians_killed", "number_of_cyclist_injured", 
+  "number_of_motorist_injured", "number_of_motorist_killed",
+  "hour", "Total Population", "Median Household Income", 
+  "White Population", "Black Population", "Asian Population", 
+  "Bachelor’s Degree Holders", "Graduate Degree Holders", "Labor Force", 
+  "Unemployed", "Median Home Value"
+  ]
+
+# Create a DataFrame named `simdat` including all the features we need to use 
+simdat = df_merged[columns_to_use]
+
+# Check for the shape of the dataframe 'simdat'
+print(simdat.shape)
+
+# Check for missing values 
+print(simdat.isnull().sum())
+
+# Drop all the rows with missing values in the dataframe 'simdat'
+simdat = simdat.dropna()
+
+# Check for the shape of the dataframe 'simdat'
+print(simdat.shape)
+
+# Check for the data types of each variable in the data frame 'simdat'
+print(simdat.dtypes)
+
+# Using one hot encoding/dummy variables to address the category variable 
+# 'borough'
+simdat = pd.get_dummies(simdat, columns = ['borough']) 
+print(simdat)
+
+# Rename columns to replace spaces with underscores
+simdat.columns = simdat.columns.str.replace(" ", "_").str.replace("-", "_")
+```
+
+```{python}
+# Compute correlation matrix
+correlation_matrix = simdat.corr()
+
+# Get absolute correlation with 'severe'
+correlation_with_severe = correlation_matrix['severe'].abs().sort_values(
+  ascending=False
+  )
+
+# Set a threshold (e.g., 0.01) to filter relevant variables
+threshold = 0.01
+highly_correlated_vars = correlation_with_severe[
+  correlation_with_severe > threshold
+  ].index.tolist()
+
+# Remove 'severe' itself from the list
+highly_correlated_vars.remove('severe')
+
+# Display selected variables
+print("Variables with high correlation with 'severe':")
+print(highly_correlated_vars)
+
+# Prepare data for logistic regression
+X = simdat[highly_correlated_vars]  # Features
+y = simdat['severe']  # Target variable
+```
+
+```{python}
+import statsmodels.formula.api as smf
+
+# Reformat column names in `highly_correlated_vars` as well
+highly_correlated_vars = [
+  col.replace(" ", "_").replace("-", "_") for col in highly_correlated_vars
+  ]
+
+# Define the logistic regression formula
+formula = "severe ~ " + " + ".join(highly_correlated_vars)
+
+# Add intercept manually for statsmodels
+X = sm.add_constant(X)
+
+# Fit logistic regression using formula API
+fit = smf.glm(formula=formula, data=simdat, family=sm.families.Binomial()).fit()
+
+# Display model summary
+print(fit.summary())
+```
